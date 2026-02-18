@@ -1,0 +1,83 @@
+{
+    "_comment": "RRTMG LW INPUT_RRTM Configuration File",
+
+    "record_1_1": {
+        "_comment": "User identification records",
+        "header": "Project 1",
+        "control_line": "$ whatever text you want here"
+    },
+
+    "record_1_2": {
+        "_comment": "Main control flags",
+        "IAER": 0,
+        "IAER_options": "0=no aerosols, 10=aerosols present (needs IN_AER_RRTM)",
+        "IATM": 1,
+        "IATM_options": "0=layer input (Records 2.x), 1=use RRTATM profiles (Records 3.x)",
+        "IXSECT": 0,
+        "IXSECT_options": "0=no cross-sections, 1=cross-sections included",
+        "NUMANGS": 0,
+        "NUMANGS_options": "0=standard diffusivity angle (default and only option)",
+        "IOUT": 0,
+        "IOUT_options": "-1=no output, 0=full spectrum 10-3250 cm-1, 1-16=single band, 99=all 17 intervals",
+        "IDRV": 0,
+        "IDRV_options": "0=standard (default), 1=apply Planck derivative adjustment",
+        "IMCA": 0,
+        "IMCA_options": "0=standard (default), 1=McICA (200 sample avg)",
+        "ICLD": 0,
+        "ICLD_options": "0=clear sky, 1=random overlap, 2=max/random, 3=maximum, 4=exponential, 5=exp-random"
+    },
+
+    "record_1_4": {
+        "_comment": "Surface properties",
+        "TBOUND": 300.0,
+        "TBOUND_note": "Surface temperature (K). Negative value uses bottom layer temperature.",
+        "IEMIS": 1,
+        "IEMIS_options": "0=emissivity 1.0 all bands, 1=same emissivity all bands (SEMISS[0]), 2=per-band emissivity",
+        "IREFLECT": 0,
+        "IREFLECT_options": "0=Lambertian (default), 1=specular (not available in RRTMG_LW)",
+        "SEMISS": [0.98],
+        "SEMISS_note": "Surface emissivity per band (up to 16 values). If IEMIS=1, only first value used."
+    },
+
+    "record_3_1": {
+        "_comment": "Atmospheric profile selection (only used when IATM=1)",
+        "MODEL": 1,
+        "MODEL_options": "0=user-supplied, 1=tropical, 2=midlat summer, 3=midlat winter, 4=subarctic summer, 5=subarctic winter, 6=US standard 1976",
+        "IBMAX": 0,
+        "IBMAX_note": "0=layers generated internally, >0=number of layer boundaries in Record 3.3B, <0=boundaries in pressure (mb)",
+        "NOPRNT": 0,
+        "NOPRNT_options": "0=full printout, 1=short printout",
+        "NMOL": 7,
+        "NMOL_note": "Number of molecular species (default=7, max=35)",
+        "IPUNCH": 0,
+        "IPUNCH_options": "0=no layer data output, 1=write layer data to TAPE7",
+        "MUNITS": 0,
+        "MUNITS_options": "0=column amounts to TAPE7, 1=mixing ratios to TAPE7",
+        "RE": 0,
+        "RE_note": "Earth radius (km). 0=default based on MODEL",
+        "CO2MX": 0,
+        "CO2MX_note": "CO2 mixing ratio (ppm). 0=default 330 ppm"
+    },
+
+    "record_3_2": {
+        "_comment": "Altitude boundaries (only used when IATM=1)",
+        "HBOUND": 0.0,
+        "HBOUND_note": "Surface altitude (km). If IBMAX<0, in pressure (mb).",
+        "HTOA": 100.0,
+        "HTOA_note": "Top of atmosphere altitude (km). If IBMAX<0, in pressure (mb)."
+    },
+
+    "record_3_3a": {
+        "_comment": "Layer generation parameters (only used when IATM=1 and IBMAX=0)",
+        "AVTRAT": 0,
+        "AVTRAT_note": "Max Voigt width ratio across layer. 0=default 1.5",
+        "TDIFF1": 0,
+        "TDIFF1_note": "Max layer temp difference at ALTD1 (K). 0=default 5K",
+        "TDIFF2": 0,
+        "TDIFF2_note": "Max layer temp difference at ALTD2 (K). 0=default 8K",
+        "ALTD1": 0,
+        "ALTD1_note": "Altitude of TDIFF1 (km). 0=default 0 km",
+        "ALTD2": 0,
+        "ALTD2_note": "Altitude of TDIFF2 (km). 0=default 100 km"
+    }
+}
