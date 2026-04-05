@@ -332,22 +332,127 @@ body {
     justify-content: center;
 }
 
+/* ===== HAMBURGER BUTTON (hidden on desktop) ===== */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    padding: 4px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.hamburger span {
+    display: block;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: all 0.25s ease;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ===== SIDEBAR OVERLAY (mobile) ===== */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 49;
+    backdrop-filter: blur(2px);
+}
+.sidebar-overlay.active { display: block; }
+
 /* ===== RESPONSIVE ===== */
-@media (max-width: 900px) {
-    .sidebar { display: none; }
-    .main { margin-left: 0; padding: 1.5rem; }
+
+/* Tablet: 600–1024px — sidebar still visible but narrower, 2-col grid */
+@media (max-width: 1024px) and (min-width: 601px) {
+    .sidebar {
+        width: 240px;
+        min-width: 240px;
+    }
+    .main {
+        margin-left: 240px;
+        padding: 1.5rem 2rem;
+    }
+    .figure-grid {
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+    .header h1 { font-size: 1.2rem; }
+    .header .subtitle { font-size: 0.75rem; }
+}
+
+/* Mobile: ≤600px — hamburger drawer navigation */
+@media (max-width: 600px) {
+    .hamburger { display: flex; }
+    .header {
+        padding: 0 1rem;
+        gap: 0.75rem;
+        height: 56px;
+    }
+    .header > div:first-child { flex: 1; min-width: 0; }
+    .header h1 {
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .header .subtitle { display: none; }
+
+    .layout { margin-top: 56px; min-height: calc(100vh - 56px); }
+
+    .sidebar {
+        top: 56px;
+        left: 0;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 50;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+    }
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .main {
+        margin-left: 0;
+        padding: 1.25rem 1rem;
+    }
+
     .figure-grid { grid-template-columns: 1fr; }
+
+    .section-header h2 { font-size: 1.4rem; }
+    .section-header p { font-size: 0.9rem; }
+
+    .filter-bar { gap: 0.4rem; }
+    .filter-btn {
+        font-size: 0.8rem;
+        padding: 0.45rem 0.75rem;
+    }
+
+    .figure-card .card-label { font-size: 0.85rem; }
 }
 </style>
 </head>
 <body>
 
 <div class="header">
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" onclick="toggleSidebar()">
+        <span></span><span></span><span></span>
+    </button>
     <div>
         <h1>RRTMG Radiative Transfer Analysis</h1>
     </div>
     <div class="subtitle">Longwave &amp; Shortwave &middot; Tropical &amp; US Standard</div>
 </div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <div class="layout">
     <nav class="sidebar" id="sidebar"></nav>
@@ -700,6 +805,7 @@ function showSection(id) {
     const nav = document.querySelector(`.nav-item[data-id="${id}"]`);
     if (nav) nav.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    closeMobileSidebar();
 }
 
 function filterFigures(sectionId, tag, btn) {
@@ -736,8 +842,27 @@ document.addEventListener('keydown', e => {
 });
 
 // =========================================================================
-//  INIT
+//  MOBILE NAV
 // =========================================================================
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const hamburger = document.getElementById('hamburger');
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('active');
+    hamburger.classList.toggle('open');
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const hamburger = document.getElementById('hamburger');
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('active');
+    hamburger.classList.remove('open');
+}
+
+
 buildSidebar();
 buildMain();
 showSection('control-flux');
