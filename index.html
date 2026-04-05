@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RRTMG Radiative Transfer Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-primary: #0a0e17;
+    --bg-card: #111827;
+    --bg-card-hover: #1a2332;
+    --bg-sidebar: #0d1220;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8b95a8;
+    --text-muted: #4a5568;
+    --accent-lw: #f59e42;
+    --accent-sw: #38bdf8;
+    --accent-heat: #c084fc;
+    --accent-spectral: #34d399;
+    --border: #1e293b;
+    --border-active: #334155;
+    --glow-lw: rgba(245, 158, 66, 0.15);
+    --glow-sw: rgba(56, 189, 248, 0.15);
+    --glow-heat: rgba(192, 132, 252, 0.15);
+    --glow-spectral: rgba(52, 211, 153, 0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10, 14, 23, 0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, var(--accent-lw), var(--accent-sw));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header .subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* ===== LAYOUT ===== */
+.layout {
+    display: flex;
+    margin-top: 64px;
+    min-height: calc(100vh - 64px);
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 0;
+    position: fixed;
+    top: 64px;
+    bottom: 0;
+    overflow-y: auto;
+    z-index: 50;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.nav-section {
+    margin-bottom: 1.5rem;
+}
+
+.nav-section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    padding: 0.5rem 1.5rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+    background: rgba(255,255,255,0.03);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.05);
+    font-weight: 500;
+}
+
+.nav-item.active[data-category="control"] { border-left-color: var(--accent-lw); }
+.nav-item.active[data-category="flux"] { border-left-color: var(--accent-sw); }
+.nav-item.active[data-category="heat"] { border-left-color: var(--accent-heat); }
+.nav-item.active[data-category="spectral"] { border-left-color: var(--accent-spectral); }
+
+.nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.nav-dot.lw { background: var(--accent-lw); }
+.nav-dot.sw { background: var(--accent-sw); }
+.nav-dot.heat { background: var(--accent-heat); }
+.nav-dot.spectral { background: var(--accent-spectral); }
+
+/* ===== MAIN CONTENT ===== */
+.main {
+    margin-left: 280px;
+    flex: 1;
+    padding: 2rem 2.5rem;
+}
+
+/* ===== SECTION ===== */
+.section {
+    display: none;
+    animation: fadeIn 0.4s ease;
+}
+
+.section.active { display: block; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.section-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    margin-bottom: 0.4rem;
+}
+
+.section-header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-width: 700px;
+}
+
+.tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.tag.lw { background: var(--glow-lw); color: var(--accent-lw); }
+.tag.sw { background: var(--glow-sw); color: var(--accent-sw); }
+
+/* ===== FILTER TABS ===== */
+.filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8rem;
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    border-color: var(--border-active);
+    color: var(--text-primary);
+}
+
+.filter-btn.active {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+/* ===== FIGURE GRID ===== */
+.figure-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 1.5rem;
+}
+
+.figure-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.figure-card:hover {
+    border-color: var(--border-active);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.figure-card img {
+    width: 100%;
+    display: block;
+    background: #fff;
+    padding: 4px;
+}
+
+.figure-card .card-label {
+    padding: 0.7rem 1rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.figure-card .card-label .card-tags {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.card-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.card-tag.lw { background: var(--glow-lw); color: var(--accent-lw); }
+.card-tag.sw { background: var(--glow-sw); color: var(--accent-sw); }
+.card-tag.trop { background: rgba(34,197,94,0.12); color: #4ade80; }
+.card-tag.usstd { background: rgba(168,85,247,0.12); color: #c084fc; }
+
+/* ===== LIGHTBOX ===== */
+.lightbox {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.88);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    cursor: zoom-out;
+}
+
+.lightbox.active { display: flex; }
+
+.lightbox img {
+    max-width: 90%;
+    max-height: 90vh;
+    border-radius: 6px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    background: #fff;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 1.5rem; }
+    .figure-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h1>RRTMG Radiative Transfer Analysis</h1>
+    </div>
+    <div class="subtitle">Longwave &amp; Shortwave &middot; Tropical &amp; US Standard</div>
+</div>
+
+<div class="layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main" id="main"></main>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+// =========================================================================
+//  DATA: All sections and figures
+// =========================================================================
+const sections = [
+    {
+        id: "control-flux",
+        nav: "Control Fluxes",
+        category: "control",
+        dot: "lw",
+        title: "Control Run — Flux Profiles",
+        desc: "Broadband upward, downward, and net radiative flux profiles for clear-sky control atmospheres. LW: 10–3250 cm⁻¹. SW: 820–50000 cm⁻¹, SZA=45°, day-night averaged (÷2).",
+        figures: [
+            { src: "figures/flux_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "figures/flux_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "figures/flux_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "figures/flux_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "control-temp",
+        nav: "Control Temperatures",
+        category: "control",
+        dot: "lw",
+        title: "Control Run — Temperature Profiles",
+        desc: "Input atmospheric temperature profiles from the AFGL standard atmospheres used as RRTMG control runs.",
+        figures: [
+            { src: "figures/temp_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "figures/temp_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "figures/temp_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "figures/temp_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "control-spectral",
+        nav: "Control Spectral",
+        category: "spectral",
+        dot: "spectral",
+        title: "Control Run — Spectral Bands",
+        desc: "TOA flux contribution per spectral band for the control atmosphere. LW: upward flux (OLR). SW: net flux (absorbed solar), day-night averaged.",
+        figures: [
+            { src: "spectral/spectral_ctrl_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "spectral/spectral_ctrl_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "spectral/spectral_ctrl_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "spectral/spectral_ctrl_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    // --- H2O × 0.5 ---
+    {
+        id: "h2o-half-flux",
+        nav: "H₂O × 0.5 — Flux Δ",
+        category: "flux",
+        dot: "sw",
+        title: "H₂O × 0.5 — Flux Differences",
+        desc: "Change in broadband flux profiles when water vapor mixing ratio is halved. Shows radiative forcing from reduced greenhouse effect.",
+        figures: [
+            { src: "figures/diff_flux_h2o_half_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "figures/diff_flux_h2o_half_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "figures/diff_flux_h2o_half_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "figures/diff_flux_h2o_half_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "h2o-half-hr",
+        nav: "H₂O × 0.5 — Heating Δ",
+        category: "heat",
+        dot: "heat",
+        title: "H₂O × 0.5 — Heating Rate Differences",
+        desc: "Change in atmospheric heating rates from halving water vapor.",
+        figures: [
+            { src: "heat_dif/hr_diff_h2o_half_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "heat_dif/hr_diff_h2o_half_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "heat_dif/hr_diff_h2o_half_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "heat_dif/hr_diff_h2o_half_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "h2o-half-spectral",
+        nav: "H₂O × 0.5 — Spectral Δ",
+        category: "spectral",
+        dot: "spectral",
+        title: "H₂O × 0.5 — Spectral Band Differences",
+        desc: "Per-band TOA flux changes from halving water vapor. Identifies which spectral regions are most affected.",
+        figures: [
+            { src: "spectral/spectral_diff_h2o_half_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "spectral/spectral_diff_h2o_half_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "spectral/spectral_diff_h2o_half_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "spectral/spectral_diff_h2o_half_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    // --- H2O × 2.0 ---
+    {
+        id: "h2o-double-flux",
+        nav: "H₂O × 2.0 — Flux Δ",
+        category: "flux",
+        dot: "sw",
+        title: "H₂O × 2.0 (Sat-Capped) — Flux Differences",
+        desc: "Change in flux profiles when water vapor is doubled, capped at 100% RH using Buck (1981) saturation vapor pressure.",
+        figures: [
+            { src: "figures/diff_flux_h2o_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "figures/diff_flux_h2o_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "figures/diff_flux_h2o_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "figures/diff_flux_h2o_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "h2o-double-hr",
+        nav: "H₂O × 2.0 — Heating Δ",
+        category: "heat",
+        dot: "heat",
+        title: "H₂O × 2.0 (Sat-Capped) — Heating Rate Differences",
+        desc: "Heating rate perturbation from doubled water vapor (capped at saturation).",
+        figures: [
+            { src: "heat_dif/hr_diff_h2o_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "heat_dif/hr_diff_h2o_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "heat_dif/hr_diff_h2o_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "heat_dif/hr_diff_h2o_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "h2o-double-spectral",
+        nav: "H₂O × 2.0 — Spectral Δ",
+        category: "spectral",
+        dot: "spectral",
+        title: "H₂O × 2.0 (Sat-Capped) — Spectral Band Differences",
+        desc: "Per-band flux changes from doubled water vapor.",
+        figures: [
+            { src: "spectral/spectral_diff_h2o_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "spectral/spectral_diff_h2o_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "spectral/spectral_diff_h2o_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "spectral/spectral_diff_h2o_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    // --- CO2 × 2.0 ---
+    {
+        id: "co2-double-flux",
+        nav: "CO₂ × 2.0 — Flux Δ",
+        category: "flux",
+        dot: "sw",
+        title: "CO₂ × 2.0 — Flux Differences",
+        desc: "Radiative forcing from doubling CO₂. Expect ~3.7 W/m² TOA LW forcing — the canonical climate sensitivity benchmark.",
+        figures: [
+            { src: "figures/diff_flux_co2_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "figures/diff_flux_co2_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "figures/diff_flux_co2_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "figures/diff_flux_co2_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "co2-double-hr",
+        nav: "CO₂ × 2.0 — Heating Δ",
+        category: "heat",
+        dot: "heat",
+        title: "CO₂ × 2.0 — Heating Rate Differences",
+        desc: "Stratospheric cooling and tropospheric warming from doubled CO₂.",
+        figures: [
+            { src: "heat_dif/hr_diff_co2_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "heat_dif/hr_diff_co2_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "heat_dif/hr_diff_co2_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "heat_dif/hr_diff_co2_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "co2-double-spectral",
+        nav: "CO₂ × 2.0 — Spectral Δ",
+        category: "spectral",
+        dot: "spectral",
+        title: "CO₂ × 2.0 — Spectral Band Differences",
+        desc: "Per-band flux changes concentrated in the 630–700 cm⁻¹ (15 μm) CO₂ absorption band.",
+        figures: [
+            { src: "spectral/spectral_diff_co2_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "spectral/spectral_diff_co2_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "spectral/spectral_diff_co2_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "spectral/spectral_diff_co2_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    // --- CH4 × 2.0 ---
+    {
+        id: "ch4-double-flux",
+        nav: "CH₄ × 2.0 — Flux Δ",
+        category: "flux",
+        dot: "sw",
+        title: "CH₄ × 2.0 — Flux Differences",
+        desc: "Radiative forcing from doubling methane. CH₄ absorbs in the 1300 cm⁻¹ (7.7 μm) band.",
+        figures: [
+            { src: "figures/diff_flux_ch4_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "figures/diff_flux_ch4_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "figures/diff_flux_ch4_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "figures/diff_flux_ch4_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "ch4-double-hr",
+        nav: "CH₄ × 2.0 — Heating Δ",
+        category: "heat",
+        dot: "heat",
+        title: "CH₄ × 2.0 — Heating Rate Differences",
+        desc: "Heating rate perturbation from doubled methane.",
+        figures: [
+            { src: "heat_dif/hr_diff_ch4_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "heat_dif/hr_diff_ch4_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "heat_dif/hr_diff_ch4_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "heat_dif/hr_diff_ch4_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "ch4-double-spectral",
+        nav: "CH₄ × 2.0 — Spectral Δ",
+        category: "spectral",
+        dot: "spectral",
+        title: "CH₄ × 2.0 — Spectral Band Differences",
+        desc: "Per-band flux changes from doubled methane.",
+        figures: [
+            { src: "spectral/spectral_diff_ch4_double_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "spectral/spectral_diff_ch4_double_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "spectral/spectral_diff_ch4_double_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "spectral/spectral_diff_ch4_double_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    // --- No O3 ---
+    {
+        id: "no-o3-flux",
+        nav: "No O₃ — Flux Δ",
+        category: "flux",
+        dot: "sw",
+        title: "No O₃ — Flux Differences",
+        desc: "Dramatic effect of removing all ozone. Eliminates UV absorption in stratosphere, massive increase in surface SW flux.",
+        figures: [
+            { src: "figures/diff_flux_no_o3_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "figures/diff_flux_no_o3_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "figures/diff_flux_no_o3_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "figures/diff_flux_no_o3_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "no-o3-hr",
+        nav: "No O₃ — Heating Δ",
+        category: "heat",
+        dot: "heat",
+        title: "No O₃ — Heating Rate Differences",
+        desc: "Stratospheric cooling collapse from ozone removal — eliminates the primary heat source in the stratosphere.",
+        figures: [
+            { src: "heat_dif/hr_diff_no_o3_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "heat_dif/hr_diff_no_o3_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "heat_dif/hr_diff_no_o3_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "heat_dif/hr_diff_no_o3_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+    {
+        id: "no-o3-spectral",
+        nav: "No O₃ — Spectral Δ",
+        category: "spectral",
+        dot: "spectral",
+        title: "No O₃ — Spectral Band Differences",
+        desc: "Per-band flux changes from removing ozone. SW bands in the UV (29000–50000 cm⁻¹) show massive increase in transmitted flux.",
+        figures: [
+            { src: "spectral/spectral_diff_no_o3_lw_tropical.png", label: "LW Tropical", tags: ["lw","trop"] },
+            { src: "spectral/spectral_diff_no_o3_lw_usstd.png", label: "LW US Standard", tags: ["lw","usstd"] },
+            { src: "spectral/spectral_diff_no_o3_sw_tropical.png", label: "SW Tropical", tags: ["sw","trop"] },
+            { src: "spectral/spectral_diff_no_o3_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
+        ]
+    },
+];
+
+// Navigation group labels
+const navGroups = [
+    { label: "Control Runs", ids: ["control-flux","control-temp","control-spectral"] },
+    { label: "H₂O × 0.5", ids: ["h2o-half-flux","h2o-half-hr","h2o-half-spectral"] },
+    { label: "H₂O × 2.0 (Sat-Cap)", ids: ["h2o-double-flux","h2o-double-hr","h2o-double-spectral"] },
+    { label: "CO₂ × 2.0", ids: ["co2-double-flux","co2-double-hr","co2-double-spectral"] },
+    { label: "CH₄ × 2.0", ids: ["ch4-double-flux","ch4-double-hr","ch4-double-spectral"] },
+    { label: "No O₃", ids: ["no-o3-flux","no-o3-hr","no-o3-spectral"] },
+];
+
+// =========================================================================
+//  BUILD UI
+// =========================================================================
+function buildSidebar() {
+    const sb = document.getElementById('sidebar');
+    let html = '';
+    for (const group of navGroups) {
+        html += `<div class="nav-section">`;
+        html += `<div class="nav-section-title">${group.label}</div>`;
+        for (const id of group.ids) {
+            const sec = sections.find(s => s.id === id);
+            if (!sec) continue;
+            html += `<div class="nav-item" data-id="${sec.id}" data-category="${sec.category}" onclick="showSection('${sec.id}')">`;
+            html += `<span class="nav-dot ${sec.dot}"></span>`;
+            html += `<span>${sec.nav}</span>`;
+            html += `</div>`;
+        }
+        html += `</div>`;
+    }
+    sb.innerHTML = html;
+}
+
+function buildMain() {
+    const main = document.getElementById('main');
+    let html = '';
+    for (const sec of sections) {
+        html += `<div class="section" id="section-${sec.id}">`;
+        html += `<div class="section-header">`;
+        html += `<h2>${sec.title}</h2>`;
+        html += `<p>${sec.desc}</p>`;
+        html += `</div>`;
+        html += `<div class="filter-bar">`;
+        html += `<button class="filter-btn active" onclick="filterFigures('${sec.id}','all',this)">All</button>`;
+        html += `<button class="filter-btn" onclick="filterFigures('${sec.id}','lw',this)">Longwave</button>`;
+        html += `<button class="filter-btn" onclick="filterFigures('${sec.id}','sw',this)">Shortwave</button>`;
+        html += `<button class="filter-btn" onclick="filterFigures('${sec.id}','trop',this)">Tropical</button>`;
+        html += `<button class="filter-btn" onclick="filterFigures('${sec.id}','usstd',this)">US Standard</button>`;
+        html += `</div>`;
+        html += `<div class="figure-grid" id="grid-${sec.id}">`;
+        for (const fig of sec.figures) {
+            const tagClasses = fig.tags.join(' ');
+            html += `<div class="figure-card" data-tags="${fig.tags.join(',')}" onclick="openLightbox('${fig.src}')">`;
+            html += `<img src="${fig.src}" alt="${fig.label}" loading="lazy">`;
+            html += `<div class="card-label">`;
+            html += `<span>${fig.label}</span>`;
+            html += `<div class="card-tags">`;
+            for (const t of fig.tags) {
+                html += `<span class="card-tag ${t}">${t}</span>`;
+            }
+            html += `</div></div></div>`;
+        }
+        html += `</div></div>`;
+    }
+    main.innerHTML = html;
+}
+
+// =========================================================================
+//  INTERACTIONS
+// =========================================================================
+function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const sec = document.getElementById('section-' + id);
+    if (sec) sec.classList.add('active');
+    const nav = document.querySelector(`.nav-item[data-id="${id}"]`);
+    if (nav) nav.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function filterFigures(sectionId, tag, btn) {
+    const grid = document.getElementById('grid-' + sectionId);
+    const cards = grid.querySelectorAll('.figure-card');
+    cards.forEach(card => {
+        const tags = card.dataset.tags.split(',');
+        if (tag === 'all' || tags.includes(tag)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    const bar = btn.parentElement;
+    bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function openLightbox(src) {
+    const lb = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    img.src = src;
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+});
+
+// =========================================================================
+//  INIT
+// =========================================================================
+buildSidebar();
+buildMain();
+showSection('control-flux');
+</script>
+</body>
+</html>
