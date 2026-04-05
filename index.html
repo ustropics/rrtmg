@@ -726,6 +726,53 @@ const sections = [
             { src: "spectral/spectral_diff_no_o3_sw_usstd.png", label: "SW US Standard", tags: ["sw","usstd"] },
         ]
     },
+    // --- Jacksonville Sounding ---
+    {
+        id: "jax-flux",
+        nav: "JAX — Flux Profiles",
+        category: "control",
+        dot: "lw",
+        title: "Jacksonville Sounding — Flux Profiles",
+        desc: "Broadband upward, downward, and net radiative flux profiles computed from a Jacksonville radiosonde sounding. LW: 10–3250 cm⁻¹. SW: 820–50000 cm⁻¹, SZA=45°, day-night averaged (÷2).",
+        figures: [
+            { src: "jax_figures/jax_flux_profiles.png", label: "LW & SW Flux Profiles", tags: ["lw","sw"] },
+        ]
+    },
+    {
+        id: "jax-hr",
+        nav: "JAX — Heating Rates",
+        category: "heat",
+        dot: "heat",
+        title: "Jacksonville Sounding — Heating Rates",
+        desc: "LW, SW, and net atmospheric heating rates from the Jacksonville radiosonde sounding. LW shows radiative cooling; SW shows day-night averaged solar heating.",
+        figures: [
+            { src: "jax_figures/jax_heating_rates.png", label: "LW, SW & Net Heating Rates", tags: ["lw","sw"] },
+        ]
+    },
+    {
+        id: "jax-spectral",
+        nav: "JAX — Spectral Bands",
+        category: "spectral",
+        dot: "spectral",
+        title: "Jacksonville Sounding — Spectral Band Fluxes",
+        desc: "TOA flux contribution per spectral band. LW: upward flux (OLR) by band. SW: net TOA flux (absorbed solar), day-night averaged.",
+        figures: [
+            { src: "jax_figures/jax_spectral_lw.png", label: "LW TOA Upward Flux", tags: ["lw"] },
+            { src: "jax_figures/jax_spectral_sw.png", label: "SW TOA Net Flux", tags: ["sw"] },
+        ]
+    },
+    {
+        id: "jax-spectral-hr",
+        nav: "JAX — Spectral Heating",
+        category: "heat",
+        dot: "heat",
+        title: "Jacksonville Sounding — Spectral Heating Rates",
+        desc: "Per-band heating rate as a function of pressure for the Jacksonville sounding. Shows which spectral bands drive cooling or warming at each atmospheric level.",
+        figures: [
+            { src: "jax_figures/jax_spectral_hr_lw.png", label: "LW Spectral Heating Rate", tags: ["lw"] },
+            { src: "jax_figures/jax_spectral_hr_sw.png", label: "SW Spectral Heating Rate", tags: ["sw"] },
+        ]
+    },
 ];
 
 // Navigation group labels
@@ -736,6 +783,7 @@ const navGroups = [
     { label: "CO₂ × 2.0", ids: ["co2-double-flux","co2-double-hr","co2-double-spectral"] },
     { label: "CH₄ × 2.0", ids: ["ch4-double-flux","ch4-double-hr","ch4-double-spectral"] },
     { label: "No O₃", ids: ["no-o3-flux","no-o3-hr","no-o3-spectral"] },
+    { label: "Jacksonville Sounding", ids: ["jax-flux","jax-hr","jax-spectral","jax-spectral-hr"] },
 ];
 
 // =========================================================================
